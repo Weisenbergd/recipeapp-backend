@@ -12,6 +12,6 @@
     "types": ["node", "jest"],
     "outDir": "dist"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "*.env"],
   "exclude": ["node_modules"]
 }

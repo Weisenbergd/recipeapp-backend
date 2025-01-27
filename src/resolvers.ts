@@ -7,7 +7,7 @@ import { ObjectId } from "mongoose";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import bcrypt from "bcrypt";
-import { S3URL } from "./s3.js";
+import { S3Delete, S3URL } from "./s3.js";
 
 interface Context {
   token?: string | null;
@@ -43,10 +43,8 @@ export const resolvers = {
       return await User.findOne({ id });
     },
     getS3URL: async (_: any, { folder }: { folder: string }) => {
-      console.log("resolver", folder);
       try {
         const test = await S3URL(folder);
-        console.log(test);
         return { S3URL: test };
       } catch (err) {
         console.log("err", err);
@@ -56,7 +54,6 @@ export const resolvers = {
 
   Mutation: {
     createRecipe: async (_: null, { input }: { input: Tinput }) => {
-      console.log(input);
       try {
         const recipe = new Recipe({
           name: input.name,
@@ -80,11 +77,25 @@ export const resolvers = {
     ) => {
       if (!context.token) throw Error("must log in to perform action");
       const recipe = await Recipe.findById(id);
+      if (!recipe) throw new Error("Recipe not found");
+
       if (recipe?.userId != jwt.verify(context.token, process.env.SECRET!)) {
         throw Error("user does not have permission to perform action");
       }
-      // await recipe.deleteOne();
-      return id;
+      try {
+        // Delete image from S3 if it exists
+        if (recipe.imageURL) {
+          const imageKey = recipe.imageURL.split(".com/")[1]; // Extract the image key from the S3 URL
+          await S3Delete(imageKey);
+        }
+
+        // Delete the recipe from the database
+        await recipe.deleteOne();
+        return id;
+      } catch (error) {
+        console.error("Error deleting recipe:", error);
+        throw new Error("Failed to delete recipe");
+      }
     },
 
     // !important -- fix ts error for subdocuments (recipe.ingredients)
@@ -95,10 +106,16 @@ export const resolvers = {
       context: Context
     ) => {
       const recipe = await Recipe.findById(input._id);
+
       if (!context.token) throw Error("must log in to perform action");
       if (recipe?.userId != jwt.verify(context.token, process.env.SECRET!)) {
         throw Error("user does not have permission to perform action");
       }
+
+      // console.log(recipe);
+      // console.log(input);
+      // throw Error("dumb");
+
       if (recipe)
         try {
           recipe.name = input.name;
@@ -107,6 +124,7 @@ export const resolvers = {
           recipe.time = input.time;
           recipe.directions = input.directions;
           recipe.dietaryTags = input.dietaryTags;
+          // recipe.imageURL = input.imageURL;
           return await recipe.save();
         } catch (err) {
           console.log(err);

@@ -1,4 +1,0 @@
-testing notes
-- npm i -d jest ts-jest @jest/globals
-- npm i ts-node-dev (needed to work)
-- Apollo server has built in function (executeOperation) for testing

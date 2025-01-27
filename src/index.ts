@@ -24,9 +24,10 @@ if (!process.env.SECRET) throw Error("no verification secret!!!");
 
 const { url } = await startStandaloneServer(server, {
   listen: { port: 4000 },
+
   context: async ({ req, res }) => {
-    const token = req.headers.authorization?.split("Bearer ")[1];
-    let user;
+    const token = req.headers.authorization?.split("Bearer ")[1] || null;
+    let user = null;
 
     return { user, token };
   },
