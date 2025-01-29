@@ -6,9 +6,10 @@ export async function aggregateRecipes(
   limit: number
 ) {
   // no filter (no ingredients selected)
-  if (ingredientList?.[0] === "" || !ingredientList) {
+  if (ingredientList?.[0] === "" || ingredientList.length === 0) {
     const recipes = await Recipe.find().skip(offset).limit(limit);
     const totalCount = await Recipe.countDocuments(); // Get total count of recipes
+
     return { recipes, totalCount };
   }
 
