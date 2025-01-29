@@ -35,8 +35,15 @@ export const resolvers = {
         limit,
       }: { ingredientList: string[]; offset: number; limit: number }
     ) => {
-      const test = await aggregateRecipes(ingredientList, offset, limit);
-      return test;
+      const { recipes, totalCount } = await aggregateRecipes(
+        ingredientList,
+        offset,
+        limit
+      );
+      return {
+        recipes,
+        totalCount,
+      };
     },
     getUsers: async () => await User.find(),
     getUser: async (_: null, { id }: { id: string }) => {

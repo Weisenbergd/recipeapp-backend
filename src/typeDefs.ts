@@ -3,7 +3,7 @@ export const typeDefs = `#graphql
     type Query {
         getRecipes(offset: Int, limit: Int): [Recipe!]!
         getSingleRecipe(recipeId: String): Recipe!
-        getFiltered(ingredientList: [String], offset: Int, limit: Int ): [Recipe!]!
+        getFiltered(ingredientList: [String], offset: Int, limit: Int): GetFilteredResponse!
         getUsers: [User!]
         getUser(id: ID!): User
         getS3URL(folder: String!): S3URL
@@ -41,6 +41,11 @@ export const typeDefs = `#graphql
         priority: Float
         imageURL: String
     }
+
+    type GetFilteredResponse {
+        recipes: [Recipe!]!
+        totalCount: Int!
+}
 
     input CreateRecipeInput {
         name: String!, 

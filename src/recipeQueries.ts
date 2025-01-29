@@ -5,12 +5,11 @@ export async function aggregateRecipes(
   offset: number,
   limit: number
 ) {
-  // no filter
-  // obsolete not filter -- decided to have seperate query for no ingredientList
-  // otherwise problem with cache combining and filter not working on front end
-
+  // no filter (no ingredients selected)
   if (ingredientList?.[0] === "" || !ingredientList) {
-    return await Recipe.find().skip(offset).limit(limit);
+    const recipes = await Recipe.find().skip(offset).limit(limit);
+    const totalCount = await Recipe.countDocuments(); // Get total count of recipes
+    return { recipes, totalCount };
   }
 
   const ingredientArray: string[] = ingredientList[0].split(",");
@@ -27,9 +26,8 @@ export async function aggregateRecipes(
   }
 
   // aggregate pipeline if there are guaranteed ingredients
-  // no long doing -- all selected must be available
   if (guaranteedIngredientsList.length > -1) {
-    return await Recipe.aggregate([
+    const recipes = await Recipe.aggregate([
       {
         $match: {
           "ingredients.ingredient": { $all: ingredientArray },
@@ -40,18 +38,24 @@ export async function aggregateRecipes(
       { $limit: limit },
     ]);
 
-    // aggregate pipeline if no guaranteed ingredients
-    // obsolete -- keeping in case change of mind
-  } else {
-    // return await Recipe.find({ "amounts.name": "potatoe" });
+    const totalCount = await Recipe.aggregate([
+      {
+        $match: {
+          "ingredients.ingredient": { $all: ingredientArray },
+        },
+      },
+      { $match: { "ingredients.ingredient": { $in: ingredientArray } } },
+    ]).count("totalCount");
 
-    const list = await Recipe.aggregate([
+    return { recipes, totalCount: totalCount[0]?.totalCount || 0 };
+  } else {
+    // aggregate pipeline if no guaranteed ingredients
+    const recipes = await Recipe.aggregate([
       {
         $match: {
           "ingredients.ingredient": { $in: ingredientArray },
         },
       },
-
       {
         $set: {
           priority: {
@@ -69,6 +73,14 @@ export async function aggregateRecipes(
       { $limit: limit },
     ]);
 
-    return list;
+    const totalCount = await Recipe.aggregate([
+      {
+        $match: {
+          "ingredients.ingredient": { $in: ingredientArray },
+        },
+      },
+    ]).count("totalCount");
+
+    return { recipes, totalCount: totalCount[0]?.totalCount || 0 };
   }
 }
